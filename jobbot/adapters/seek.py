@@ -79,7 +79,7 @@ class SeekAdapter(JobSiteAdapter):
             description=description,
         )
 
-    def prepare_application(self, job, profile, run_settings, resume_path, ai_client) -> PreparedApplication:
+    def prepare_application(self, job, profile, run_settings, resume_path, ai_client, cover_letter: str = "") -> PreparedApplication:
         if not self.engine.try_click_any(self.APPLY_SELECTORS, timeout_ms=5000):
             return PreparedApplication(status="not_available", notes="Seek apply button not found.")
 
@@ -87,9 +87,19 @@ class SeekAdapter(JobSiteAdapter):
         form_filler = GenericFormFiller(self.engine, self.logger)
         self._fill_common_fields(profile)
 
-        generated_cover_letter = ""
-        if run_settings.auto_generate_cover_letter:
+        generated_cover_letter = cover_letter
+        if run_settings.auto_generate_cover_letter and not generated_cover_letter:
             generated_cover_letter = ai_client.generate_cover_letter(job.to_dict(), profile)
+            self.engine.try_fill_any(
+                [
+                    "textarea[aria-label*='Cover letter']",
+                    "textarea[name*='cover']",
+                    "textarea[id*='cover']",
+                ],
+                generated_cover_letter,
+                timeout_ms=2000,
+            )
+        elif generated_cover_letter:
             self.engine.try_fill_any(
                 [
                     "textarea[aria-label*='Cover letter']",

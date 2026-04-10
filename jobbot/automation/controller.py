@@ -160,6 +160,7 @@ class AutomationController:
                     run_settings=self.settings.run,
                     resume_path=self.settings.resume_path,
                     ai_client=self.ai_client,
+                    cover_letter=cover_letter,
                 )
 
                 result = {

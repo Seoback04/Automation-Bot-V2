@@ -78,6 +78,7 @@ class JobSiteAdapter:
         run_settings: RunSettings,
         resume_path: str,
         ai_client: OllamaClient,
+        cover_letter: str = "",
     ) -> PreparedApplication:
         raise NotImplementedError
 

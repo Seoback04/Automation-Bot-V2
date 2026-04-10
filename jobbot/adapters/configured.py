@@ -54,7 +54,7 @@ class ConfiguredJobBoardAdapter(JobSiteAdapter):
             description=description,
         )
 
-    def prepare_application(self, job, profile, run_settings, resume_path, ai_client) -> PreparedApplication:
+    def prepare_application(self, job, profile, run_settings, resume_path, ai_client, cover_letter: str = "") -> PreparedApplication:
         apply_texts = self.site_config.get("apply_texts", [])
         apply_selectors = self._selectors_from_texts(apply_texts)
 
@@ -63,7 +63,9 @@ class ConfiguredJobBoardAdapter(JobSiteAdapter):
 
         self.engine.sleep(1.5)
 
-        cover_letter = ai_client.generate_cover_letter(job.to_dict(), profile) if run_settings.auto_generate_cover_letter else ""
+        cover_letter = cover_letter or (
+            ai_client.generate_cover_letter(job.to_dict(), profile) if run_settings.auto_generate_cover_letter else ""
+        )
         submit_texts = self.site_config.get("submit_texts", [])
         next_texts = self.site_config.get("next_texts", [])
         submit_selectors = self._selectors_from_texts(submit_texts)
