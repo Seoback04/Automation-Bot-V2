@@ -1,0 +1,32 @@
+{
+  "resume_path": "",
+  "browser": {
+    "browser_binary_path": "C:\\Program Files\\BraveSoftware\\Brave-Browser\\Application\\brave.exe",
+    "browser_user_data_dir": "X:\\jobbot\\data\\browser-profile",
+    "headless": false,
+    "slow_mo_ms": 150,
+    "timeout_ms": 15000,
+    "screenshot_on_failure": true
+  },
+  "ollama": {
+    "enabled": true,
+    "base_url": "http://127.0.0.1:11434",
+    "model": "llama3.1:8b",
+    "request_timeout_seconds": 90,
+    "temperature": 0.2
+  },
+  "run": {
+    "primary_engine": "playwright",
+    "fallback_engine": "selenium",
+    "site": "linkedin",
+    "query": "Software Engineer",
+    "location": "Auckland",
+    "max_jobs": 3,
+    "dry_run": true,
+    "stop_on_captcha": true,
+    "stop_before_submit": true,
+    "take_screenshots": true,
+    "auto_generate_cover_letter": true,
+    "auto_answer_screening_questions": true
+  }
+}

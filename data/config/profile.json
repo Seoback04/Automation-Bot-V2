@@ -1,0 +1,36 @@
+{
+  "full_name": "Your Name",
+  "email": "your.email@example.com",
+  "phone": "+64 21 000 0000",
+  "location": "Auckland, New Zealand",
+  "linkedin_url": "https://www.linkedin.com/in/your-profile",
+  "portfolio_url": "",
+  "summary": "Local automation-ready profile used to prefill job applications.",
+  "skills": [
+    "Python",
+    "Automation",
+    "Testing",
+    "Playwright"
+  ],
+  "work_authorization": "Open to work in New Zealand",
+  "salary_expectation": "",
+  "remote_preference": "Hybrid",
+  "notice_period": "2 weeks",
+  "custom_answers": {
+    "visa": "I am eligible to work in New Zealand.",
+    "salary": "Happy to discuss based on the role scope and package."
+  },
+  "education": [],
+  "employment": [
+    {
+      "company": "Example Co",
+      "title": "QA Automation Engineer",
+      "start_date": "2024-01",
+      "end_date": "Present",
+      "achievements": [
+        "Built browser automation for regression coverage.",
+        "Improved release confidence with repeatable test workflows."
+      ]
+    }
+  ]
+}
