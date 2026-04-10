@@ -100,6 +100,10 @@ class BrowserSettings:
     slow_mo_ms: int = 150
     timeout_ms: int = 15000
     screenshot_on_failure: bool = True
+    attach_to_existing_browser: bool = False
+    remote_debugging_url: str = "http://127.0.0.1:9222"
+    reuse_current_page_on_attach: bool = True
+    keep_browser_open: bool = True
 
     @classmethod
     def from_dict(cls, payload: dict[str, Any]) -> "BrowserSettings":
@@ -110,6 +114,10 @@ class BrowserSettings:
             slow_mo_ms=int(payload.get("slow_mo_ms", 150)),
             timeout_ms=int(payload.get("timeout_ms", 15000)),
             screenshot_on_failure=bool(payload.get("screenshot_on_failure", True)),
+            attach_to_existing_browser=bool(payload.get("attach_to_existing_browser", False)),
+            remote_debugging_url=payload.get("remote_debugging_url", "http://127.0.0.1:9222"),
+            reuse_current_page_on_attach=bool(payload.get("reuse_current_page_on_attach", True)),
+            keep_browser_open=bool(payload.get("keep_browser_open", True)),
         )
 
 
@@ -139,6 +147,8 @@ class RunSettings:
     site: str = "linkedin"
     query: str = "Software Engineer"
     location: str = "Auckland"
+    start_url: str = ""
+    job_urls: list[str] = field(default_factory=list)
     max_jobs: int = 3
     dry_run: bool = True
     stop_on_captcha: bool = True
@@ -146,6 +156,7 @@ class RunSettings:
     take_screenshots: bool = True
     auto_generate_cover_letter: bool = True
     auto_answer_screening_questions: bool = True
+    auto_fill_generic_forms: bool = True
 
     @classmethod
     def from_dict(cls, payload: dict[str, Any]) -> "RunSettings":
@@ -155,6 +166,8 @@ class RunSettings:
             site=payload.get("site", "linkedin"),
             query=payload.get("query", "Software Engineer"),
             location=payload.get("location", "Auckland"),
+            start_url=payload.get("start_url", ""),
+            job_urls=[item for item in payload.get("job_urls", []) if isinstance(item, str) and item.strip()],
             max_jobs=int(payload.get("max_jobs", 3)),
             dry_run=bool(payload.get("dry_run", True)),
             stop_on_captcha=bool(payload.get("stop_on_captcha", True)),
@@ -162,6 +175,7 @@ class RunSettings:
             take_screenshots=bool(payload.get("take_screenshots", True)),
             auto_generate_cover_letter=bool(payload.get("auto_generate_cover_letter", True)),
             auto_answer_screening_questions=bool(payload.get("auto_answer_screening_questions", True)),
+            auto_fill_generic_forms=bool(payload.get("auto_fill_generic_forms", True)),
         )
 
 

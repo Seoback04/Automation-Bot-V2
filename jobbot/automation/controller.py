@@ -4,7 +4,7 @@ from copy import deepcopy
 from datetime import datetime
 from typing import Any
 
-from jobbot.adapters.registry import create_adapter
+from jobbot.adapters.registry import create_adapter, supported_site_names
 from jobbot.ai.ollama_client import OllamaClient
 from jobbot.automation.engines.playwright_engine import PlaywrightEngine
 from jobbot.automation.engines.selenium_engine import SeleniumEngine
@@ -50,21 +50,25 @@ class AutomationController:
             "current_job_index": 0,
             "job_results": [],
             "generated_assets": {},
+            "supported_sites": supported_site_names(),
             "pending_checkpoint": None,
             "last_error": "",
+            "current_url": "",
+            "current_title": "",
         }
         self.logger.info("Starting automation run.", site=self.state["site"], query=self.state["query"])
 
         self._start_engine()
         self.adapter = create_adapter(self.state["site"], self.engine, self.logger)
-        self.adapter.open_search_page(self.state["query"], self.state["location"])
+        self._open_run_entrypoint()
+        self._refresh_browser_context()
 
         self.state["status"] = "checkpoint"
         self.state["stage"] = "awaiting_login"
         self.state["pending_checkpoint"] = {
             "kind": "manual_login",
             "message": (
-                "Log in to the selected site in the opened browser window. "
+                "Log in or position the attached browser on the desired jobs page. "
                 "Complete MFA or any anti-bot checks, then return to Streamlit and continue."
             ),
         }
@@ -80,8 +84,8 @@ class AutomationController:
 
         if kind == "manual_login":
             self.state["stage"] = "collecting_jobs"
-            self.adapter.open_search_page(self.state["query"], self.state["location"])
-            self.state["job_links"] = self.adapter.collect_job_links(self.active_run_settings["run"]["max_jobs"])
+            self._refresh_browser_context()
+            self.state["job_links"] = self._resolve_job_links()
             self.logger.info("Collected job links.", count=len(self.state["job_links"]))
             if not self.state["job_links"]:
                 self.state["status"] = "completed"
@@ -109,6 +113,9 @@ class AutomationController:
 
     def snapshot(self) -> dict[str, Any]:
         snapshot = deepcopy(self.state)
+        total = len(snapshot.get("job_links", []))
+        current = snapshot.get("current_job_index", 0)
+        snapshot["progress_ratio"] = round((current / total), 3) if total else 0.0
         if self.logger is not None:
             snapshot["run_dir"] = str(self.logger.run_dir)
             snapshot["log_path"] = str(self.logger.log_file)
@@ -121,6 +128,7 @@ class AutomationController:
                 job_url = self.state["job_links"][self.state["current_job_index"]]
                 self.logger.info("Opening job.", url=job_url, index=self.state["current_job_index"])
                 self.adapter.open_job(job_url)
+                self._refresh_browser_context()
 
                 if self.adapter.detect_captcha() and self.active_run_settings["run"]["stop_on_captcha"]:
                     self.state["status"] = "checkpoint"
@@ -164,6 +172,7 @@ class AutomationController:
                     "analysis": analysis,
                     "cover_letter": cover_letter or prepared.generated_cover_letter,
                     "generated_answers": prepared.generated_answers,
+                    "metadata": prepared.metadata,
                 }
 
                 if prepared.status == "review_ready":
@@ -273,3 +282,51 @@ class AutomationController:
             except Exception:  # noqa: BLE001
                 pass
             self.engine = None
+
+    def _open_run_entrypoint(self) -> None:
+        start_url = self.active_run_settings["run"].get("start_url", "").strip()
+        attach_mode = self.settings.browser.attach_to_existing_browser and self.settings.browser.reuse_current_page_on_attach
+        current_url = self.engine.current_url() if self.engine is not None else ""
+
+        if start_url:
+            self.engine.goto(start_url)
+            self.logger.info("Opened explicit start URL.", url=start_url)
+            return
+
+        if attach_mode and current_url and current_url not in {"about:blank", "chrome://newtab/"}:
+            self.logger.info("Reusing current attached browser tab.", url=current_url)
+            return
+
+        self.adapter.open_search_page(self.state["query"], self.state["location"])
+
+    def _resolve_job_links(self) -> list[str]:
+        direct_urls = [
+            item.strip()
+            for item in self.active_run_settings["run"].get("job_urls", [])
+            if isinstance(item, str) and item.strip()
+        ]
+        if direct_urls:
+            return direct_urls[: self.active_run_settings["run"]["max_jobs"]]
+
+        try:
+            job_links = self.adapter.collect_job_links(self.active_run_settings["run"]["max_jobs"])
+        except Exception as exc:  # noqa: BLE001
+            self.logger.exception("Job link collection failed.", exc)
+            job_links = []
+
+        current_url = self.engine.current_url()
+        if not job_links and current_url and current_url not in {"about:blank", "chrome://newtab/"}:
+            job_links = [current_url]
+        return job_links
+
+    def _refresh_browser_context(self) -> None:
+        if self.engine is None:
+            return
+        try:
+            self.state["current_url"] = self.engine.current_url()
+        except Exception:  # noqa: BLE001
+            self.state["current_url"] = ""
+        try:
+            self.state["current_title"] = self.engine.current_title()
+        except Exception:  # noqa: BLE001
+            self.state["current_title"] = ""

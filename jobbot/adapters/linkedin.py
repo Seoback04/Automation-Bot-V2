@@ -3,6 +3,7 @@ from __future__ import annotations
 from urllib.parse import quote_plus
 
 from jobbot.adapters.base import JobPosting, JobSiteAdapter, PreparedApplication
+from jobbot.automation.form_filler import FillResult, GenericFormFiller
 
 
 class LinkedInAdapter(JobSiteAdapter):
@@ -92,6 +93,7 @@ class LinkedInAdapter(JobSiteAdapter):
             return PreparedApplication(status="not_available", notes="Easy Apply not found.")
 
         self.engine.sleep(1.5)
+        form_filler = GenericFormFiller(self.engine, self.logger)
         self._fill_common_fields(profile)
 
         generated_cover_letter = ""
@@ -106,6 +108,15 @@ class LinkedInAdapter(JobSiteAdapter):
                 self.logger.warning("Resume upload did not match the current LinkedIn form.", resume_path=resume_path)
 
         generated_answers = self._apply_custom_answers(profile, ai_client, job)
+        generic_fill_result = form_filler.fill_application_form(
+            profile=profile,
+            job=job.to_dict(),
+            run_settings=run_settings,
+            ai_client=ai_client,
+            resume_path=resume_path,
+            cover_letter=generated_cover_letter,
+        ) if run_settings.auto_fill_generic_forms else FillResult([], [], {}, [])
+        generated_answers.update(generic_fill_result.generated_answers)
 
         for _ in range(4):
             if self.engine.exists_any(self.SUBMIT_SELECTORS):
@@ -115,6 +126,7 @@ class LinkedInAdapter(JobSiteAdapter):
                     submit_selectors=self.SUBMIT_SELECTORS,
                     generated_cover_letter=generated_cover_letter,
                     generated_answers=generated_answers,
+                    metadata=generic_fill_result.to_dict(),
                 )
             if not self.engine.try_click_any(self.NEXT_SELECTORS, timeout_ms=3000):
                 break
@@ -122,6 +134,15 @@ class LinkedInAdapter(JobSiteAdapter):
             self._fill_common_fields(profile)
             if generated_cover_letter:
                 self._fill_cover_letter(generated_cover_letter)
+            generic_fill_result = form_filler.fill_application_form(
+                profile=profile,
+                job=job.to_dict(),
+                run_settings=run_settings,
+                ai_client=ai_client,
+                resume_path=resume_path,
+                cover_letter=generated_cover_letter,
+            ) if run_settings.auto_fill_generic_forms else generic_fill_result
+            generated_answers.update(generic_fill_result.generated_answers)
 
         return PreparedApplication(
             status="review_ready",
@@ -129,6 +150,7 @@ class LinkedInAdapter(JobSiteAdapter):
             submit_selectors=self.SUBMIT_SELECTORS,
             generated_cover_letter=generated_cover_letter,
             generated_answers=generated_answers,
+            metadata=generic_fill_result.to_dict(),
         )
 
     def _fill_common_fields(self, profile) -> None:

@@ -95,9 +95,7 @@ class ConfigManager:
         if not candidates:
             candidates = sorted(DATA_DIR.glob("*.pdf"))
         if candidates:
-            settings.resume_path = str(candidates[-1])
-            self.save_settings(settings)
-            return settings.resume_path
+            return str(candidates[-1])
         return ""
 
     def latest_run_dir(self) -> Path | None:

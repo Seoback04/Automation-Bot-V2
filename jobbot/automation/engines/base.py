@@ -30,6 +30,10 @@ class BrowserEngine(ABC):
         raise NotImplementedError
 
     @abstractmethod
+    def current_title(self) -> str:
+        raise NotImplementedError
+
+    @abstractmethod
     def click_any(self, selectors: list[str], timeout_ms: int | None = None) -> str:
         raise NotImplementedError
 
@@ -59,6 +63,22 @@ class BrowserEngine(ABC):
 
     @abstractmethod
     def screenshot(self, path: str | Path) -> None:
+        raise NotImplementedError
+
+    @abstractmethod
+    def scan_form_fields(self) -> list[dict]:
+        raise NotImplementedError
+
+    @abstractmethod
+    def fill_field_by_index(self, field_index: int, value: str) -> bool:
+        raise NotImplementedError
+
+    @abstractmethod
+    def upload_file_by_index(self, field_index: int, file_path: str) -> bool:
+        raise NotImplementedError
+
+    @abstractmethod
+    def select_option_by_index(self, field_index: int, value: str) -> bool:
         raise NotImplementedError
 
     def sleep(self, seconds: float) -> None:

@@ -3,6 +3,7 @@ from __future__ import annotations
 from urllib.parse import quote_plus
 
 from jobbot.adapters.base import JobPosting, JobSiteAdapter, PreparedApplication
+from jobbot.automation.form_filler import FillResult, GenericFormFiller
 
 
 class SeekAdapter(JobSiteAdapter):
@@ -83,6 +84,7 @@ class SeekAdapter(JobSiteAdapter):
             return PreparedApplication(status="not_available", notes="Seek apply button not found.")
 
         self.engine.sleep(1.5)
+        form_filler = GenericFormFiller(self.engine, self.logger)
         self._fill_common_fields(profile)
 
         generated_cover_letter = ""
@@ -104,6 +106,15 @@ class SeekAdapter(JobSiteAdapter):
             except Exception:  # noqa: BLE001
                 self.logger.warning("Resume upload did not match the current Seek form.", resume_path=resume_path)
 
+        generic_fill_result = form_filler.fill_application_form(
+            profile=profile,
+            job=job.to_dict(),
+            run_settings=run_settings,
+            ai_client=ai_client,
+            resume_path=resume_path,
+            cover_letter=generated_cover_letter,
+        ) if run_settings.auto_fill_generic_forms else FillResult([], [], {}, [])
+
         for _ in range(4):
             if self.engine.exists_any(self.SUBMIT_SELECTORS):
                 return PreparedApplication(
@@ -111,17 +122,29 @@ class SeekAdapter(JobSiteAdapter):
                     notes="Reached the final Seek review step.",
                     submit_selectors=self.SUBMIT_SELECTORS,
                     generated_cover_letter=generated_cover_letter,
+                    generated_answers=generic_fill_result.generated_answers,
+                    metadata=generic_fill_result.to_dict(),
                 )
             if not self.engine.try_click_any(self.NEXT_SELECTORS, timeout_ms=3000):
                 break
             self.engine.sleep(1.0)
             self._fill_common_fields(profile)
+            generic_fill_result = form_filler.fill_application_form(
+                profile=profile,
+                job=job.to_dict(),
+                run_settings=run_settings,
+                ai_client=ai_client,
+                resume_path=resume_path,
+                cover_letter=generated_cover_letter,
+            ) if run_settings.auto_fill_generic_forms else generic_fill_result
 
         return PreparedApplication(
             status="review_ready",
             notes="Seek application prepared for manual review.",
             submit_selectors=self.SUBMIT_SELECTORS,
             generated_cover_letter=generated_cover_letter,
+            generated_answers=generic_fill_result.generated_answers,
+            metadata=generic_fill_result.to_dict(),
         )
 
     def _fill_common_fields(self, profile) -> None:
