@@ -64,6 +64,9 @@ class ConfiguredJobBoardAdapter(JobSiteAdapter):
         self.engine.sleep(1.5)
 
         cover_letter = ai_client.generate_cover_letter(job.to_dict(), profile) if run_settings.auto_generate_cover_letter else ""
+        submit_texts = self.site_config.get("submit_texts", [])
+        next_texts = self.site_config.get("next_texts", [])
+        submit_selectors = self._selectors_from_texts(submit_texts)
         fill_result = self.form_filler.fill_application_form(
             profile=profile,
             job=job.to_dict(),
@@ -71,11 +74,20 @@ class ConfiguredJobBoardAdapter(JobSiteAdapter):
             ai_client=ai_client,
             resume_path=resume_path,
             cover_letter=cover_letter,
-        ) if run_settings.auto_fill_generic_forms else FillResult([], [], {}, [])
+        ) if run_settings.auto_fill_generic_forms else self._empty_fill_result()
 
-        submit_texts = self.site_config.get("submit_texts", [])
-        next_texts = self.site_config.get("next_texts", [])
-        submit_selectors = self._selectors_from_texts(submit_texts)
+        if run_settings.auto_fill_generic_forms and not fill_result.ready_to_advance:
+            return PreparedApplication(
+                status="review_ready",
+                notes=(
+                    "Required fields still need confirmation before moving forward: "
+                    + ", ".join(fill_result.unresolved_required_fields[:8])
+                ),
+                submit_selectors=submit_selectors,
+                generated_cover_letter=cover_letter,
+                generated_answers=fill_result.generated_answers,
+                metadata=fill_result.to_dict(),
+            )
 
         for _ in range(5):
             if self.engine.exists_any(submit_selectors):
@@ -101,6 +113,19 @@ class ConfiguredJobBoardAdapter(JobSiteAdapter):
                 cover_letter=cover_letter,
             ) if run_settings.auto_fill_generic_forms else fill_result
 
+            if run_settings.auto_fill_generic_forms and not fill_result.ready_to_advance:
+                return PreparedApplication(
+                    status="review_ready",
+                    notes=(
+                        "Moved to a new step, but required fields still need confirmation: "
+                        + ", ".join(fill_result.unresolved_required_fields[:8])
+                    ),
+                    submit_selectors=submit_selectors,
+                    generated_cover_letter=cover_letter,
+                    generated_answers=fill_result.generated_answers,
+                    metadata=fill_result.to_dict(),
+                )
+
         return PreparedApplication(
             status="review_ready",
             notes="Generic compatibility mode prepared the form for manual review.",
@@ -109,6 +134,9 @@ class ConfiguredJobBoardAdapter(JobSiteAdapter):
             generated_answers=fill_result.generated_answers,
             metadata=fill_result.to_dict(),
         )
+
+    def _empty_fill_result(self) -> FillResult:
+        return FillResult([], [], {}, [], [], [], [], 0, True)
 
     def _selectors_from_texts(self, texts: list[str]) -> list[str]:
         selectors: list[str] = []

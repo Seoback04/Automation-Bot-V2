@@ -16,23 +16,34 @@ Local-first Windows job application automation with an interactive Streamlit con
 - Local Ollama integration for job analysis, cover letters, and screening-question drafts.
 - Run artifacts stored under `data/runs/<timestamp>/` with logs, screenshots, and generated markdown.
 
-## Run It
+## One-Click Start
 
-1. Create or activate your virtual environment.
-2. Install dependencies:
+Use either of these:
 
-```powershell
-pip install -r requirements.txt
-playwright install chromium
+```text
+Start JobBot.bat
 ```
 
-3. Start the UI in VS Code terminal:
+or in PowerShell:
 
 ```powershell
-streamlit run streamlit_app.py
+.\Start-JobBot.ps1
 ```
 
-4. Open the browser shown by Streamlit, save your profile, upload a PDF resume, and start a dry-run.
+The launcher will:
+
+- use the local `.venv` Python when available
+- install missing Python packages
+- install Playwright Chromium if needed
+- start Ollama in the background when enabled and available
+- start Streamlit if it is not already running
+- open the JobBot dashboard automatically
+
+Inside VS Code you can also run the task:
+
+```text
+Terminal > Run Task > Start JobBot
+```
 
 ## Reuse Your Existing Brave Window
 

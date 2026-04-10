@@ -113,7 +113,20 @@ class SeekAdapter(JobSiteAdapter):
             ai_client=ai_client,
             resume_path=resume_path,
             cover_letter=generated_cover_letter,
-        ) if run_settings.auto_fill_generic_forms else FillResult([], [], {}, [])
+        ) if run_settings.auto_fill_generic_forms else self._empty_fill_result()
+
+        if run_settings.auto_fill_generic_forms and not generic_fill_result.ready_to_advance:
+            return PreparedApplication(
+                status="review_ready",
+                notes=(
+                    "Seek form needs confirmation before moving forward: "
+                    + ", ".join(generic_fill_result.unresolved_required_fields[:8])
+                ),
+                submit_selectors=self.SUBMIT_SELECTORS,
+                generated_cover_letter=generated_cover_letter,
+                generated_answers=generic_fill_result.generated_answers,
+                metadata=generic_fill_result.to_dict(),
+            )
 
         for _ in range(4):
             if self.engine.exists_any(self.SUBMIT_SELECTORS):
@@ -138,6 +151,19 @@ class SeekAdapter(JobSiteAdapter):
                 cover_letter=generated_cover_letter,
             ) if run_settings.auto_fill_generic_forms else generic_fill_result
 
+            if run_settings.auto_fill_generic_forms and not generic_fill_result.ready_to_advance:
+                return PreparedApplication(
+                    status="review_ready",
+                    notes=(
+                        "Seek form still has required fields to confirm: "
+                        + ", ".join(generic_fill_result.unresolved_required_fields[:8])
+                    ),
+                    submit_selectors=self.SUBMIT_SELECTORS,
+                    generated_cover_letter=generated_cover_letter,
+                    generated_answers=generic_fill_result.generated_answers,
+                    metadata=generic_fill_result.to_dict(),
+                )
+
         return PreparedApplication(
             status="review_ready",
             notes="Seek application prepared for manual review.",
@@ -146,6 +172,9 @@ class SeekAdapter(JobSiteAdapter):
             generated_answers=generic_fill_result.generated_answers,
             metadata=generic_fill_result.to_dict(),
         )
+
+    def _empty_fill_result(self) -> FillResult:
+        return FillResult([], [], {}, [], [], [], [], 0, True)
 
     def _fill_common_fields(self, profile) -> None:
         field_map = {

@@ -115,8 +115,21 @@ class LinkedInAdapter(JobSiteAdapter):
             ai_client=ai_client,
             resume_path=resume_path,
             cover_letter=generated_cover_letter,
-        ) if run_settings.auto_fill_generic_forms else FillResult([], [], {}, [])
+        ) if run_settings.auto_fill_generic_forms else self._empty_fill_result()
         generated_answers.update(generic_fill_result.generated_answers)
+
+        if run_settings.auto_fill_generic_forms and not generic_fill_result.ready_to_advance:
+            return PreparedApplication(
+                status="review_ready",
+                notes=(
+                    "LinkedIn form needs confirmation before moving forward: "
+                    + ", ".join(generic_fill_result.unresolved_required_fields[:8])
+                ),
+                submit_selectors=self.SUBMIT_SELECTORS,
+                generated_cover_letter=generated_cover_letter,
+                generated_answers=generated_answers,
+                metadata=generic_fill_result.to_dict(),
+            )
 
         for _ in range(4):
             if self.engine.exists_any(self.SUBMIT_SELECTORS):
@@ -144,6 +157,19 @@ class LinkedInAdapter(JobSiteAdapter):
             ) if run_settings.auto_fill_generic_forms else generic_fill_result
             generated_answers.update(generic_fill_result.generated_answers)
 
+            if run_settings.auto_fill_generic_forms and not generic_fill_result.ready_to_advance:
+                return PreparedApplication(
+                    status="review_ready",
+                    notes=(
+                        "LinkedIn form still has required fields to confirm: "
+                        + ", ".join(generic_fill_result.unresolved_required_fields[:8])
+                    ),
+                    submit_selectors=self.SUBMIT_SELECTORS,
+                    generated_cover_letter=generated_cover_letter,
+                    generated_answers=generated_answers,
+                    metadata=generic_fill_result.to_dict(),
+                )
+
         return PreparedApplication(
             status="review_ready",
             notes="LinkedIn apply dialog prepared for manual review.",
@@ -152,6 +178,9 @@ class LinkedInAdapter(JobSiteAdapter):
             generated_answers=generated_answers,
             metadata=generic_fill_result.to_dict(),
         )
+
+    def _empty_fill_result(self) -> FillResult:
+        return FillResult([], [], {}, [], [], [], [], 0, True)
 
     def _fill_common_fields(self, profile) -> None:
         names = profile.full_name.split()
