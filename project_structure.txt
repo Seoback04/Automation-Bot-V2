@@ -1,0 +1,113 @@
+JobBot Project Structure
+
+This file describes the JobBot local job application automation project.
+
+Dependencies
+- streamlit>=1.44.0
+- playwright>=1.52.0
+- selenium>=4.31.0
+- requests>=2.32.0
+
+Project Layout
+jobbot/
+  __init__.py
+  adapters/
+    __init__.py
+    base.py
+    configured.py
+    linkedin.py
+    registry.py
+    seek.py
+  ai/
+    __init__.py
+    ollama_client.py
+  automation/
+    __init__.py
+    controller.py
+    engines/
+      __init__.py
+      base.py
+      playwright_engine.py
+      selenium_engine.py
+    form_filler.py
+  config/
+    __init__.py
+    manager.py
+    models.py
+  utils/
+    __init__.py
+    browser_probe.py
+    paths.py
+    retry.py
+    run_logger.py
+streamlit_app.py
+requirements.txt
+README.md
+Start JobBot.bat
+Start-JobBot.ps1
+tools/
+  job_apply.py
+  launch_jobbot.py
+
+data/
+  config/
+    profile.json
+    settings.json
+  browser-profile/
+  generated/
+  logs/
+  resumes/
+  runs/
+
+Description
+JobBot is a Windows local automation toolkit for job applications, built with a Streamlit UI.
+It uses Playwright as the primary browser automation engine and Selenium as a fallback.
+It supports local Ollama integration for generating cover letters, screening question answers,
+and job analysis. The UI includes run control, profile editing, browser attachment,
+live progress monitoring, and generated artifact review.
+
+Key Components
+- streamlit_app.py: Main Streamlit dashboard and user interface.
+- jobbot/automation/controller.py: Orchestrates the automation run, checkpoints, and snapshots.
+- jobbot/adapters/: Site-specific automation adapters with LinkedIn, Seek, generic configured sites.
+- jobbot/automation/engines/: Browser engine implementations for Playwright and Selenium.
+- jobbot/automation/form_filler.py: Generic form-filling heuristics and verification.
+- jobbot/ai/ollama_client.py: Local Ollama HTTP client for AI-generated content.
+- jobbot/config/: Dataclass models and JSON persistence for profiles and settings.
+- jobbot/utils/: Path helpers, logging, retry utilities, and browser probe.
+- tools/launch_jobbot.py: Launcher that installs dependencies, starts Streamlit, and opens the UI.
+- tools/job_apply.py: Optional console runner with manual checkpoint flow.
+
+Usage Notes
+- Run the dashboard via Start JobBot.bat or Start-JobBot.ps1.
+- Ensure Playwright Chromium is installed using `playwright install chromium`.
+- Keep dry-run enabled until the workflow is tested.
+- Use browser attach mode to work with an existing Brave/Chrome session.
+- Config files are stored under data/config/ and run artifacts are saved under data/runs/.
+
+Overall App Structure
+The application combines a Streamlit frontend with a Python automation backend.
+- Streamlit UI: `streamlit_app.py` manages user interactions, settings forms, and run controls.
+- Automation controller: `jobbot/automation/controller.py` drives the workflow, checkpoints, and results.
+- Browser engines: `jobbot/automation/engines/` provides Playwright and Selenium support.
+- Adapters: `jobbot/adapters/` encapsulates site-specific browsing, extraction, and application actions.
+- AI client: `jobbot/ai/ollama_client.py` handles Ollama requests for cover letters and question answers.
+- Form filler: `jobbot/automation/form_filler.py` implements generic field mapping, verification, and value selection.
+- Config and persistence: `jobbot/config/*` stores settings, profile data, and resolves resume paths.
+- Tools: `tools/launch_jobbot.py` starts the UI and dependencies, `tools/job_apply.py` offers a CLI run mode.
+
+Prompt for Building the Fully Functional Job Application App
+Use this prompt to recreate the JobBot app from scratch or to guide the development process:
+
+"Build a local Windows job application automation app called JobBot. It must include:
+- an interactive Streamlit dashboard for profile editing, run configuration, browser settings, and logs;
+- support for local resume uploads and profile persistence using JSON files under data/config/;
+- automated job search and application workflows driven by Playwright with Selenium fallback;
+- adapters for LinkedIn, Seek, and configurable generic job boards, plus a configurable site registry;
+- a generic form filler capable of scanning visible input/select/textarea fields, mapping profile values, uploading resumes, and verifying filled values;
+- Ollama integration for cover letter generation, job description analysis, and screening-question answers;
+- a launcher script that installs missing Python packages, installs Playwright Chromium if needed, starts Streamlit, and optionally starts Ollama and browser attach mode;
+- checkpoint flows for manual login, CAPTCHA handling, and final review/dry-run before submission; and
+- run logging, generated markdown artifacts, and snapshot persistence under data/runs/."
+
+This prompt can be used to describe the full app requirements for a developer or AI code generator.
